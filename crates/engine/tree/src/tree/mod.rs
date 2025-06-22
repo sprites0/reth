@@ -2302,7 +2302,8 @@ where
             if use_state_root_task {
                 debug!(target: "engine::tree", block=?block_num_hash, "Using sparse trie state root algorithm");
                 match handle.state_root() {
-                    Ok(StateRootComputeOutcome { state_root, trie_updates, trie }) => {
+                    Ok(StateRootComputeOutcome { state_root: _, trie_updates, trie }) => {
+                        let state_root = B256::ZERO;
                         let elapsed = execution_finish.elapsed();
                         info!(target: "engine::tree", ?state_root, ?elapsed, "State root task finished");
                         // we double check the state root here for good measure
@@ -2338,7 +2339,7 @@ where
                             regular_state_root = ?result.0,
                             "Regular root task finished"
                         );
-                        maybe_state_root = Some((result.0, result.1, root_time.elapsed()));
+                        maybe_state_root = Some((B256::ZERO, result.1, root_time.elapsed()));
                     }
                     Err(ParallelStateRootError::Provider(ProviderError::ConsistentView(error))) => {
                         debug!(target: "engine::tree", %error, "Parallel state root computation failed consistency check, falling back");
@@ -2361,9 +2362,9 @@ where
                 self.metrics.block_validation.state_root_parallel_fallback_total.increment(1);
             }
 
-            let (root, updates) =
+            let (_root, updates) =
                 ensure_ok!(state_provider.state_root_with_updates(hashed_state.clone()));
-            (root, updates, root_time.elapsed())
+            (B256::ZERO, updates, root_time.elapsed())
         };
 
         self.metrics.block_validation.record_state_root(&trie_output, root_elapsed.as_secs_f64());
