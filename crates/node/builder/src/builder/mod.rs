@@ -152,7 +152,7 @@ pub struct NodeBuilder<DB, ChainSpec> {
     /// All settings for how the node should be configured.
     config: NodeConfig<ChainSpec>,
     /// The configured database for the node.
-    database: DB,
+    pub database: DB,
 }
 
 impl<ChainSpec> NodeBuilder<(), ChainSpec> {
@@ -305,7 +305,7 @@ where
 /// This exposes the same methods as [`NodeBuilder`] but with the launch context already configured,
 /// See [`WithLaunchContext::launch`]
 pub struct WithLaunchContext<Builder> {
-    builder: Builder,
+    pub builder: Builder,
     task_executor: TaskExecutor,
 }
 
