@@ -320,6 +320,7 @@ where
         // Reset the checkpoint
         self.save_execution_checkpoint(provider, None)?;
 
+        let trie_root = B256::ZERO;
         validate_state_root(trie_root, SealedHeader::seal_slow(target_block), to_block)?;
 
         Ok(ExecOutput {
@@ -367,6 +368,7 @@ where
         } else {
             let (block_root, updates) = StateRoot::incremental_root_with_updates(tx, range)
                 .map_err(|e| StageError::Fatal(Box::new(e)))?;
+            let block_root = B256::ZERO;
 
             // Validate the calculated state root
             let target = provider
