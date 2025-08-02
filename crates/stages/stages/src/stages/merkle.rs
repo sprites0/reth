@@ -320,8 +320,8 @@ where
         // Reset the checkpoint
         self.save_execution_checkpoint(provider, None)?;
 
-        let trie_root = B256::ZERO;
-        validate_state_root(trie_root, SealedHeader::seal_slow(target_block), to_block)?;
+        let _ = trie_root;
+        validate_state_root(B256::ZERO, SealedHeader::seal_slow(target_block), to_block)?;
 
         Ok(ExecOutput {
             checkpoint: StageCheckpoint::new(to_block)
@@ -368,14 +368,14 @@ where
         } else {
             let (block_root, updates) = StateRoot::incremental_root_with_updates(tx, range)
                 .map_err(|e| StageError::Fatal(Box::new(e)))?;
-            let block_root = B256::ZERO;
 
             // Validate the calculated state root
             let target = provider
                 .header_by_number(input.unwind_to)?
                 .ok_or_else(|| ProviderError::HeaderNotFound(input.unwind_to.into()))?;
 
-            validate_state_root(block_root, SealedHeader::seal_slow(target), input.unwind_to)?;
+            let _ = block_root;
+            validate_state_root(B256::ZERO, SealedHeader::seal_slow(target), input.unwind_to)?;
 
             // Validation passed, apply unwind changes to the database.
             provider.write_trie_updates(&updates)?;

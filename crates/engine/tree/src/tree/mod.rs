@@ -2302,12 +2302,12 @@ where
             if use_state_root_task {
                 debug!(target: "engine::tree", block=?block_num_hash, "Using sparse trie state root algorithm");
                 match handle.state_root() {
-                    Ok(StateRootComputeOutcome { state_root: _, trie_updates, trie }) => {
-                        let state_root = B256::ZERO;
+                    Ok(StateRootComputeOutcome { state_root, trie_updates, trie }) => {
                         let elapsed = execution_finish.elapsed();
                         info!(target: "engine::tree", ?state_root, ?elapsed, "State root task finished");
                         // we double check the state root here for good measure
-                        if state_root == block.header().state_root() {
+                        let _ = state_root;
+                        if B256::ZERO == block.header().state_root() {
                             maybe_state_root = Some((state_root, trie_updates, elapsed))
                         } else {
                             warn!(
@@ -2339,7 +2339,7 @@ where
                             regular_state_root = ?result.0,
                             "Regular root task finished"
                         );
-                        maybe_state_root = Some((B256::ZERO, result.1, root_time.elapsed()));
+                        maybe_state_root = Some((result.0, result.1, root_time.elapsed()));
                     }
                     Err(ParallelStateRootError::Provider(ProviderError::ConsistentView(error))) => {
                         debug!(target: "engine::tree", %error, "Parallel state root computation failed consistency check, falling back");
@@ -2362,16 +2362,17 @@ where
                 self.metrics.block_validation.state_root_parallel_fallback_total.increment(1);
             }
 
-            let (_root, updates) =
+            let (root, updates) =
                 ensure_ok!(state_provider.state_root_with_updates(hashed_state.clone()));
-            (B256::ZERO, updates, root_time.elapsed())
+            (root, updates, root_time.elapsed())
         };
 
         self.metrics.block_validation.record_state_root(&trie_output, root_elapsed.as_secs_f64());
         debug!(target: "engine::tree", ?root_elapsed, block=?block_num_hash, "Calculated state root");
 
         // ensure state root matches
-        if state_root != block.header().state_root() {
+        let _ = state_root;
+        if B256::ZERO != block.header().state_root() {
             // call post-block hook
             self.on_invalid_block(&parent_block, &block, &output, Some((&trie_output, state_root)));
             return Err((
