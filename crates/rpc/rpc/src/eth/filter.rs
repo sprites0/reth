@@ -598,10 +598,6 @@ where
             let mut headers_iter = headers.into_iter().peekable();
 
             while let Some(header) = headers_iter.next() {
-                if !filter.matches_bloom(header.logs_bloom()) {
-                    continue
-                }
-
                 let current_number = header.number();
 
                 let block_hash = match headers_iter.peek() {
