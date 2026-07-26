@@ -1,18 +1,17 @@
 use alloy_consensus::{constants::KECCAK_EMPTY, BlockHeader};
 use alloy_primitives::{BlockNumber, Sealable, B256};
 use reth_codecs::Compact;
-use reth_consensus::ConsensusError;
 use reth_db_api::{
     tables,
     transaction::{DbTx, DbTxMut},
 };
-use reth_primitives_traits::{GotExpected, SealedHeader};
+use reth_primitives_traits::SealedHeader;
 use reth_provider::{
     ChangeSetReader, DBProvider, HeaderProvider, ProviderError, StageCheckpointReader,
     StageCheckpointWriter, StatsReader, StorageChangeSetReader, StorageSettingsCache, TrieWriter,
 };
 use reth_stages_api::{
-    BlockErrorKind, EntitiesCheckpoint, ExecInput, ExecOutput, MerkleCheckpoint, Stage,
+    EntitiesCheckpoint, ExecInput, ExecOutput, MerkleCheckpoint, Stage,
     StageCheckpoint, StageError, StageId, StorageRootMerkleCheckpoint, UnwindInput, UnwindOutput,
 };
 use reth_trie::{IntermediateStateRootState, StateRoot, StateRootProgress, StoredSubNode};
@@ -433,23 +432,16 @@ where
 }
 
 /// Check that the computed state root matches the root in the expected header.
+///
+/// hl: HyperEVM headers carry a zero state root, so there is nothing to validate against and this
+/// is a no-op. The trie is still built; only the comparison is dropped.
 #[inline]
 fn validate_state_root<H: BlockHeader + Sealable + Debug>(
-    got: B256,
-    expected: SealedHeader<H>,
-    target_block: BlockNumber,
+    _got: B256,
+    _expected: SealedHeader<H>,
+    _target_block: BlockNumber,
 ) -> Result<(), StageError> {
-    if got == expected.state_root() {
-        Ok(())
-    } else {
-        error!(target: "sync::stages::merkle", ?target_block, ?got, ?expected, "Failed to verify block state root! {INVALID_STATE_ROOT_ERROR_MESSAGE}");
-        Err(StageError::Block {
-            error: BlockErrorKind::Validation(ConsensusError::BodyStateRootDiff(
-                GotExpected { got, expected: expected.state_root() }.into(),
-            )),
-            block: Box::new(expected.block_with_parent()),
-        })
-    }
+    Ok(())
 }
 
 #[cfg(test)]

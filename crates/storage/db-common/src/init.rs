@@ -600,26 +600,13 @@ where
         provider_rw.commit()?;
     }
 
-    // compute and compare state root
+    // compute the state root
+    //
+    // hl: the HyperEVM state dump has a zero expected root, so upstream's comparison against it
+    // is dropped; the trie is still computed and persisted.
     let computed_state_root = compute_state_root_chunked(provider_factory)?;
-    if computed_state_root == expected_state_root {
-        info!(target: "reth::cli",
-            ?computed_state_root,
-            "Computed state root matches state root in state dump"
-        );
-    } else {
-        error!(target: "reth::cli",
-            ?computed_state_root,
-            ?expected_state_root,
-            "Computed state root does not match state root in state dump"
-        );
-
-        return Err(InitStorageError::StateRootMismatch(GotExpected {
-            got: computed_state_root,
-            expected: expected_state_root,
-        })
-        .into())
-    }
+    let _ = expected_state_root;
+    info!(target: "reth::cli", ?computed_state_root, "Computed state root from state dump");
 
     // insert sync stages for stages that require state
     {

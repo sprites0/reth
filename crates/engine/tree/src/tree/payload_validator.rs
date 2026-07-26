@@ -142,7 +142,7 @@ use reth_payload_primitives::{
     PayloadTypes,
 };
 use reth_primitives_traits::{
-    AlloyBlockHeader, BlockBody, BlockTy, FastInstant as Instant, GotExpected, NodePrimitives,
+    AlloyBlockHeader, BlockBody, BlockTy, FastInstant as Instant, NodePrimitives,
     RecoveredBlock, SealedBlock, SealedHeader, SignerRecoverable,
 };
 use reth_provider::{
@@ -842,26 +842,9 @@ where
             .record_state_root_gas_bucket(block.header().gas_used(), root_elapsed.as_secs_f64());
         debug!(target: "engine::tree::payload_validator", ?root_elapsed, "Calculated state root");
 
-        // ensure state root matches
-        if state_root != block.header().state_root() {
-            // call post-block hook
-            self.on_invalid_block(
-                &parent_block,
-                &block,
-                &output,
-                Some((&trie_output, state_root)),
-                ctx.state_mut(),
-            );
-            let block_state_root = block.header().state_root();
-            return Err(InsertBlockError::new(
-                block.into_sealed_block(),
-                ConsensusError::BodyStateRootDiff(
-                    GotExpected { got: state_root, expected: block_state_root }.into(),
-                )
-                .into(),
-            )
-            .into())
-        }
+        // hl: HyperEVM headers carry a zero state root, so there is nothing to compare the
+        // computed root against. The upstream mismatch check is removed.
+        let _ = state_root;
 
         let timing_stats = state_provider_stats.filter(|_| slow_block_enabled).map(|stats| {
             self.calculate_timing_stats(
