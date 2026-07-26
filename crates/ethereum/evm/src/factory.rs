@@ -16,8 +16,14 @@ use revm::{
 #[cfg(feature = "jit")]
 use revmc::alloy_evm::JitEvmFactory;
 
+// `revm_evm::JitEvm` is the generic wrapper a node implementation applies to its own EVM, as
+// opposed to `alloy_evm::JitEvmFactory` below, which this crate uses for the Ethereum EVM. It is
+// re-exported so downstream nodes can wrap their EVM without taking a direct revmc dependency --
+// which would otherwise have to spell the revmc git source exactly as this crate does, since Cargo
+// does not unify git sources declared with different reference kinds.
 #[cfg(feature = "jit")]
 pub use revmc::{
+    revm_evm::JitEvm,
     runtime::{
         maybe_run_jit_helper, CompilationEvent, CompilationKind, JitBackend, JitMode,
         RuntimeConfig, RuntimeStatsSnapshot, RuntimeTuning,
