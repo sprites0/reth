@@ -115,8 +115,16 @@ impl DatabaseEnvMetrics {
     }
 
     /// Returns pre-bound operation metric handles for a single table.
-    pub(crate) fn table_operation_metrics(&self, table: &'static str) -> TableOperationMetrics {
-        self.operations.get(table).expect("table operation metric handles not found").clone()
+    ///
+    /// Handles are only pre-bound for [`Tables`], so this returns `None` for tables from a custom
+    /// [`TableSet`](reth_db_api::table::TableSet) registered via
+    /// [`create_tables_for`](crate::mdbx::DatabaseEnv::create_tables_for). Those tables are simply
+    /// not instrumented, matching how [`Self::record_operation`] degrades.
+    pub(crate) fn table_operation_metrics(
+        &self,
+        table: &'static str,
+    ) -> Option<TableOperationMetrics> {
+        self.operations.get(table).cloned()
     }
 
     /// Record metrics for opening a database transaction.
