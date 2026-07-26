@@ -432,7 +432,11 @@ reth-zstd-compressors = { version = "0.5.0", default-features = false }
 
 # revm
 revm = { version = "41.0.0", default-features = false }
-revmc = { git = "https://github.com/paradigmxyz/revmc", branch = "main", default-features = false, features = ["llvm-prefer-static"] }
+# hl: pinned to the commit v2.4.1 was developed against. `main` has since moved to a revmc
+# built against a newer revm, which does not compile against the revm 41 this workspace pins
+# -- revmc-runtime alone fails with 33 trait and signature mismatches. `branch = "main"` puts
+# that breakage one re-resolve away, and a lockfile only hides it until the next one.
+revmc = { git = "https://github.com/paradigmxyz/revmc", rev = "7e3536d659d3bdd4b433cff7df201d1605cc8853", default-features = false, features = ["llvm-prefer-static"] }
 revm-inspectors = "0.41.0"
 
 # eth
