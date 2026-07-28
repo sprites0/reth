@@ -19,12 +19,22 @@ use reth_rpc_eth_types::{
     EthApiError,
 };
 use reth_storage_api::{ProviderBlock, ProviderTx};
-use revm::{context_interface::result::ResultAndState, DatabaseCommit};
+use revm::{context_interface::result::ResultAndState, state::EvmState, DatabaseCommit};
 use revm_inspectors::tracing::{TracingInspector, TracingInspectorConfig};
 use std::sync::Arc;
 
 /// Executes CPU heavy tasks.
 pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
+    /// Applies chain-specific changes to a tracing inspector before its output is formatted.
+    fn apply_post_execution_tracing_inspector(
+        &self,
+        _tx_info: &TransactionInfo,
+        _state: &mut EvmState,
+        _inspector: &mut TracingInspector,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     /// Executes the [`TxEnvFor`] with [`EvmEnvFor`] against the given [Database] without committing
     /// state changes.
     fn inspect<DB, I>(
@@ -137,7 +147,19 @@ pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
             + 'static,
         R: Send + 'static,
     {
-        self.spawn_trace_transaction_in_block_with_inspector(hash, TracingInspector::new(config), f)
+        let this = self.clone();
+        self.spawn_trace_transaction_in_block_with_inspector(
+            hash,
+            TracingInspector::new(config),
+            move |tx_info, mut inspector, mut res, db| {
+                this.apply_post_execution_tracing_inspector(
+                    &tx_info,
+                    &mut res.state,
+                    &mut inspector,
+                )?;
+                f(tx_info, inspector, res, db)
+            },
+        )
     }
 
     /// Retrieves the transaction if it exists and returns its trace.
@@ -234,12 +256,20 @@ pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
             + 'static,
         R: Send + 'static,
     {
+        let this = self.clone();
         self.trace_block_until_with_inspector(
             block_id,
             block,
             highest_index,
             move || TracingInspector::new(config),
-            f,
+            move |tx_info, mut ctx| {
+                this.apply_post_execution_tracing_inspector(
+                    &tx_info,
+                    ctx.state,
+                    ctx.inspector,
+                )?;
+                f(tx_info, ctx)
+            },
         )
     }
 

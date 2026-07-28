@@ -767,7 +767,14 @@ where
                         });
 
                         let gas_limit = tx_env.gas_limit();
-                        let res = self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        let mut res =
+                            self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        self.eth_api()
+                            .apply_post_execution_tracing_inspector(
+                                &tx_info,
+                                &mut res.state,
+                                inspector,
+                            )?;
 
                         inspector.set_transaction_gas_limit(gas_limit);
 
