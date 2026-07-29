@@ -751,7 +751,9 @@ where
                 GethDebugTracerType::BuiltInTracer(tracer) => match tracer {
                     GethDebugBuiltInTracerType::FourByteTracer => {
                         let mut inspector = FourByteInspector::default();
-                        let res = self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        let mut res =
+                            self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
                         return Ok((FourByteFrame::from(&inspector).into(), res.state))
                     }
                     GethDebugBuiltInTracerType::CallTracer => {
@@ -769,12 +771,7 @@ where
                         let gas_limit = tx_env.gas_limit();
                         let mut res =
                             self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
-                        self.eth_api()
-                            .apply_post_execution_tracing_inspector(
-                                &tx_info,
-                                &mut res.state,
-                                inspector,
-                            )?;
+                        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
 
                         inspector.set_transaction_gas_limit(gas_limit);
 
@@ -796,8 +793,9 @@ where
                             )
                         });
                         let gas_limit = tx_env.gas_limit();
-                        let res =
+                        let mut res =
                             self.eth_api().inspect(&mut *db, evm_env, tx_env, &mut inspector)?;
+                        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
 
                         inspector.set_transaction_gas_limit(gas_limit);
                         let frame = inspector
@@ -819,8 +817,9 @@ where
                         let mut inspector = MuxInspector::try_from_config(mux_config)
                             .map_err(Eth::Error::from_eth_err)?;
 
-                        let res =
+                        let mut res =
                             self.eth_api().inspect(&mut *db, evm_env, tx_env, &mut inspector)?;
+                        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
                         let frame = inspector
                             .try_into_mux_frame(&res, db, tx_info)
                             .map_err(Eth::Error::from_eth_err)?;
@@ -837,7 +836,9 @@ where
                         );
 
                         let gas_limit = tx_env.gas_limit();
-                        let res = self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        let mut res =
+                            self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+                        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
                         let frame: FlatCallFrame = inspector
                             .with_transaction_gas_limit(gas_limit)
                             .into_parity_builder()
@@ -860,12 +861,13 @@ where
                             transaction_context.unwrap_or_default(),
                         )
                         .map_err(Eth::Error::from_eth_err)?;
-                    let res = self.eth_api().inspect(
+                    let mut res = self.eth_api().inspect(
                         &mut *db,
                         evm_env.clone(),
                         tx_env.clone(),
                         &mut inspector,
                     )?;
+                    self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
 
                     let state = res.state.clone();
                     let result = inspector
@@ -887,7 +889,8 @@ where
             TracingInspector::new(inspector_config)
         });
         let gas_limit = tx_env.gas_limit();
-        let res = self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+        let mut res = self.eth_api().inspect(db, evm_env, tx_env, &mut inspector)?;
+        self.eth_api().apply_post_execution_state(&tx_info, &mut res.state)?;
         let gas_used = res.result.gas_used();
         let return_value = res.result.into_output().unwrap_or_default();
         inspector.set_transaction_gas_limit(gas_limit);

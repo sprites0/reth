@@ -25,12 +25,11 @@ use std::sync::Arc;
 
 /// Executes CPU heavy tasks.
 pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
-    /// Applies chain-specific changes to a tracing inspector before its output is formatted.
-    fn apply_post_execution_tracing_inspector(
+    /// Applies chain-specific changes to the state returned by an RPC replay.
+    fn apply_post_execution_state(
         &self,
         _tx_info: &TransactionInfo,
         _state: &mut EvmState,
-        _inspector: &mut TracingInspector,
     ) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -152,11 +151,7 @@ pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
             hash,
             TracingInspector::new(config),
             move |tx_info, mut inspector, mut res, db| {
-                this.apply_post_execution_tracing_inspector(
-                    &tx_info,
-                    &mut res.state,
-                    &mut inspector,
-                )?;
+                this.apply_post_execution_state(&tx_info, &mut res.state)?;
                 f(tx_info, inspector, res, db)
             },
         )
@@ -263,11 +258,7 @@ pub trait Trace: LoadState<Error: FromEvmError<Self::Evm>> {
             highest_index,
             move || TracingInspector::new(config),
             move |tx_info, mut ctx| {
-                this.apply_post_execution_tracing_inspector(
-                    &tx_info,
-                    ctx.state,
-                    ctx.inspector,
-                )?;
+                this.apply_post_execution_state(&tx_info, ctx.state)?;
                 f(tx_info, ctx)
             },
         )
